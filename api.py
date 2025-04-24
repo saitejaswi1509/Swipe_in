@@ -728,6 +728,36 @@ def read_users(db: Session = Depends(get_db)):
     users = db.query(Meals).all()
     return users    
     
+@app.get("/users/{username}")
+def read_user(username: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.put("/users/{username}")
+def update_user(
+    username: str,
+    user: UserBase,
+    db: Session = Depends(get_db),
+):
+    existing_user = db.query(User).filter(User.username == username).first()
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check for duplicates
+    if db.query(User).filter(User.email == user.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    existing_user.first_name = user.first_name
+    existing_user.last_name = user.last_name
+    existing_user.email = user.email
+    existing_user.password = hashlib.sha256(user.password.encode('utf-8')).hexdigest()
+
+    db.commit()
+    db.refresh(existing_user)
+
+    return existing_user
 
 
 @app.delete("/users/{username}")

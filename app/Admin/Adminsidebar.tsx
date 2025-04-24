@@ -203,7 +203,10 @@ export default function AdminSidebar() {
                       styles.subMenuItem,
                       isActive(m.path) && styles.menuItemActive,
                     ]}
-                    onPress={() => router.push(m.path as never)}
+                    onPress={() => router.push(m.path as never)
+                    
+                    }
+                    
                   >
                     <Ionicons name={m.icon as any} size={18} color="#00BFFF" />
                     <Text style={styles.menuText}>{m.label}</Text>
