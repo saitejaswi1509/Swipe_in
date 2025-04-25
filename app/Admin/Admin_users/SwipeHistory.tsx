@@ -1,3 +1,4 @@
+// app/Admin/SwipeHistory.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
 import { styles } from '../admin_styles/swipe_history';
 
@@ -44,7 +46,6 @@ const FILTERS = ['All', 'Meal swipes', 'Flex dollars'] as const;
 
 export default function SwipeHistory() {
   const [students, setStudents] = useState<Student[]>([]);
-  // track which single username is expanded
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({});
   const [filterMap, setFilterMap] = useState<Record<string, typeof FILTERS[number]>>({});
   const [showAllMap, setShowAllMap] = useState<Record<string, boolean>>({});
@@ -63,33 +64,33 @@ export default function SwipeHistory() {
     }
   };
 
+  // ── Helpers for Dallas/Chicago time ──
+
+  const parseDate = (iso: string): Date => new Date(iso);
+  const formatDateTime = (iso: string): string =>
+    new Date(iso).toLocaleString("en-US");
+
+
   const toggleExpand = (username: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const willExpand = !expandedMap[username];
-
-    // collapse all, then set just this one
     setExpandedMap({ [username]: willExpand });
-
     if (willExpand) {
-      // reset filters for newly expanded
       setFilterMap({ [username]: 'All' });
       setShowAllMap({ [username]: false });
     }
   };
-
   const renderTransaction = ({ item }: { item: Transaction }) => {
     const loc = item.Location.toLowerCase();
-    const color = loc.includes('chick')
-      ? 'red'
-      : loc.includes('dining')
-      ? 'maroon'
-      : 'black';
-
+    const color = loc.includes("chick")
+      ? "red"
+      : loc.includes("dining")
+      ? "maroon"
+      : "black";
+  
     return (
       <View style={styles.txRow}>
-        <Text style={styles.txCell}>
-          {new Date(item.transaction_date).toLocaleString()}
-        </Text>
+        <Text style={styles.txCell}>{formatDateTime(item.transaction_date)}</Text>
         <Text style={styles.txCell}>{item.transaction_mode}</Text>
         <Text style={[styles.txCell, { color }]}>{item.Location}</Text>
         <Text style={styles.txCell}>{item.Total_Amount.toFixed(2)}</Text>
@@ -97,19 +98,21 @@ export default function SwipeHistory() {
       </View>
     );
   };
+  
 
   const renderStudent = ({ item }: { item: Student }) => {
     const expanded = !!expandedMap[item.username];
     const filter = filterMap[item.username] || 'All';
 
-    // filter & sort
     let txs = item.transactions.slice();
     if (filter !== 'All') {
       const key = filter === 'Meal swipes' ? 'swipe' : 'flex';
       txs = txs.filter(tx => tx.transaction_mode.toLowerCase().includes(key));
     }
-    txs.sort((a, b) =>
-      new Date(b.transaction_date).getTime() - new Date(a.transaction_date).getTime()
+    txs.sort(
+      (a, b) =>
+        parseDate(b.transaction_date).getTime() -
+        parseDate(a.transaction_date).getTime()
     );
 
     const showAll = !!showAllMap[item.username];
@@ -172,11 +175,11 @@ export default function SwipeHistory() {
               renderItem={renderTransaction}
               ListHeaderComponent={() => (
                 <View style={styles.txHeaderRow}>
-                  <Text style={styles.txHeaderCell}>Date</Text>
+                  <Text style={styles.txHeaderCell}>Date & Time</Text>
                   <Text style={styles.txHeaderCell}>Payment Mode</Text>
                   <Text style={styles.txHeaderCell}>Location</Text>
                   <Text style={styles.txHeaderCell}>Amount</Text>
-                  <Text style={styles.txHeaderCell}>Transaction ID</Text>
+                  <Text style={styles.txHeaderCell}>Txn ID</Text>
                 </View>
               )}
               ListFooterComponent={() =>
@@ -216,7 +219,6 @@ export default function SwipeHistory() {
         />
       </View>
 
-      {/* column headers */}
       <View style={[styles.row, styles.headerRow]}>
         <Text style={[styles.cell, styles.small]}>Mustang Number</Text>
         <Text style={[styles.cell, styles.medium]}>First Name</Text>

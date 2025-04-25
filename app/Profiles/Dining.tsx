@@ -567,7 +567,9 @@ function PaymentPrompt({
 
     const transactionData = {
       username: username,
-      transaction_date: new Date().toISOString(),
+      transaction_date: new Date()
+      .toLocaleString("sv-SE", { timeZone: "America/Chicago" })  // e.g. "2025-04-25 14:42:00"
+      .replace(" ", "T"),
       transaction_mode: method,
       transaction_id: uuid.v4(),
       is_successful: true,

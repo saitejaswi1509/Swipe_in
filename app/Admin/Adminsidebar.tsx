@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
@@ -77,10 +77,9 @@ type SectionLabel = (typeof main)[number]["label"];
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-
   const [expanded, setExpanded] = useState<SectionLabel | null>(null);
 
-  // auto‑open if you land on a subpage
+  // Auto-open if you land on a subpage
   useEffect(() => {
     if (userSub.some((s) => s.path === pathname)) {
       setExpanded("User Management");
@@ -93,23 +92,17 @@ export default function AdminSidebar() {
     }
   }, [pathname]);
 
-  // helper to highlight exact matches
+  // Helper to highlight exact matches
   const isActive = (p?: string) => p === pathname;
 
-  // click handler for top‑level items
+  // Click handler for top-level items
   const onPressMain = (item: (typeof main)[number]) => {
-    if (item.label === "User Management") {
-      setExpanded((prev) =>
-        prev === "User Management" ? null : "User Management"
-      );
-    } else if (item.label === "Menu Management") {
-      setExpanded((prev) =>
-        prev === "Menu Management" ? null : "Menu Management"
-      );
-    } else if (item.label === "Recent Transactions") {
-      setExpanded((prev) =>
-        prev === "Recent Transactions" ? null : "Recent Transactions"
-      );
+    if (
+      item.label === "User Management" ||
+      item.label === "Menu Management" ||
+      item.label === "Recent Transactions"
+    ) {
+      setExpanded((prev) => (prev === item.label ? null : item.label));
     } else if (item.path) {
       router.push(item.path as never);
     }
@@ -127,14 +120,18 @@ export default function AdminSidebar() {
           (item.label === "Menu Management" &&
             menuSub.some((s) => s.path === pathname)) ||
           (item.label === "Recent Transactions" &&
-            userSub.some((s) => s.path === pathname)) ||
+            recentSub.some((s) => s.path === pathname)) ||
           isActive(item.label);
 
         return (
           <View key={item.label}>
-            <TouchableOpacity
-              style={[styles.menuItem, active && styles.menuItemActive]}
+            <Pressable
               onPress={() => onPressMain(item)}
+              style={({ hovered }) => [
+                styles.menuItem,
+                hovered && styles.menuItemHover,
+                active && styles.menuItemActive,
+              ]}
             >
               <Ionicons name={item.icon as any} size={20} color="#00BFFF" />
               <Text style={styles.menuText}>{item.label}</Text>
@@ -150,24 +147,29 @@ export default function AdminSidebar() {
                   style={styles.expandIcon}
                 />
               )}
-            </TouchableOpacity>
+            </Pressable>
 
             {/* User Management submenu */}
             {item.label === "User Management" && open && (
               <View style={styles.subMenuContainer}>
                 {userSub.map((s) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={s.label}
-                    style={[
+                    onPress={() => router.push(s.path as never)}
+                    style={({ hovered }) => [
                       styles.menuItem,
                       styles.subMenuItem,
+                      hovered && styles.menuItemHover,
                       isActive(s.path) && styles.menuItemActive,
                     ]}
-                    onPress={() => router.push(s.path as never)}
                   >
-                    <Ionicons name={s.icon as any} size={18} color="#00BFFF" />
+                    <Ionicons
+                      name={s.icon as any}
+                      size={18}
+                      color="#00BFFF"
+                    />
                     <Text style={styles.menuText}>{s.label}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             )}
@@ -176,18 +178,23 @@ export default function AdminSidebar() {
             {item.label === "Recent Transactions" && open && (
               <View style={styles.subMenuContainer}>
                 {recentSub.map((r) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={r.label}
-                    style={[
+                    onPress={() => router.push(r.path as never)}
+                    style={({ hovered }) => [
                       styles.menuItem,
                       styles.subMenuItem,
+                      hovered && styles.menuItemHover,
                       isActive(r.path) && styles.menuItemActive,
                     ]}
-                    onPress={() => router.push(r.path as never)}
                   >
-                    <Ionicons name={r.icon as any} size={18} color="#00BFFF" />
+                    <Ionicons
+                      name={r.icon as any}
+                      size={18}
+                      color="#00BFFF"
+                    />
                     <Text style={styles.menuText}>{r.label}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             )}
@@ -196,21 +203,23 @@ export default function AdminSidebar() {
             {item.label === "Menu Management" && open && (
               <View style={styles.subMenuContainer}>
                 {menuSub.map((m) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={m.label}
-                    style={[
+                    onPress={() => router.push(m.path as never)}
+                    style={({ hovered }) => [
                       styles.menuItem,
                       styles.subMenuItem,
+                      hovered && styles.menuItemHover,
                       isActive(m.path) && styles.menuItemActive,
                     ]}
-                    onPress={() => router.push(m.path as never)
-                    
-                    }
-                    
                   >
-                    <Ionicons name={m.icon as any} size={18} color="#00BFFF" />
+                    <Ionicons
+                      name={m.icon as any}
+                      size={18}
+                      color="#00BFFF"
+                    />
                     <Text style={styles.menuText}>{m.label}</Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
             )}
@@ -243,6 +252,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 6,
     marginBottom: 4,
+  },
+  menuItemHover: {
+    backgroundColor: "#F5F5F5",
   },
   menuItemActive: {
     backgroundColor: "#E6F7FF",

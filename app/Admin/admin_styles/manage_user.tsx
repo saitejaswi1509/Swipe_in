@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
 
   // Column widths (flex ratios)
   usernameColumn: {
-    flex: 1.2,
+    flex: 1,
   },
   firstNameColumn: {
     flex: 1,
@@ -109,25 +109,25 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   emailColumn: {
-    flex: 1.8,
+    flex: 1,
   },
   actionsColumn: {
-    flex: 1,
+    width: 90,                      // just wide enough for two buttons
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginRight: 32,
   },
 
-  // Action buttons in each row
   editBtn: {
     backgroundColor: '#17A2B8',
-    padding: 6,
-    borderRadius: 4,
-    marginRight: 8,
+    padding: 8,
+    borderRadius: 6,
   },
   deleteBtn: {
     backgroundColor: '#DC3545',
-    padding: 6,
-    borderRadius: 4,
+    padding: 8,
+    borderRadius: 6,
   },
 
   // Modal overlay + box

@@ -1,3 +1,4 @@
+// app/Transactions.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -44,106 +45,106 @@ export default function Transactions() {
 
   // UI state
   const [searchText, setSearchText] = useState("");
-  const [dateFilter, setDateFilter] = useState<"All"|"Today"|"Yesterday"|"Range">("All");
-  const [dateRange, setDateRange] = useState<{ start: Date|null; end: Date|null }>({
+  const [dateFilter, setDateFilter] = useState<"All" | "Today" | "Yesterday" | "Range">("All");
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
     start: null,
     end: null,
   });
-  const [showPicker, setShowPicker] = useState<"start"|"end"|null>(null);
+  const [showPicker, setShowPicker] = useState<"start" | "end" | null>(null);
 
   useEffect(() => {
     axios
       .get<TransactionRow[]>("http://127.0.0.1:8081/Transactions/")
       .then(({ data }) => {
-        // only show Cash & Card
-        const cashCardOnly = data.filter(tx =>
-          tx.transaction_mode === "Employee Meal"   );
-        // sort newest‑first
-        cashCardOnly.sort((a, b) =>
-          new Date(b.transaction_date).getTime() -
-          new Date(a.transaction_date).getTime()
+        // only show Employee Meal
+        const filtered = data.filter(tx => tx.transaction_mode === "Employee Meal");
+        filtered.sort(
+          (a, b) =>
+            new Date(b.transaction_date).getTime() -
+            new Date(a.transaction_date).getTime()
         );
-        setAllTxs(cashCardOnly);
+        setAllTxs(filtered);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  // Chicago‑time formatting
-  const toChicagoYMD = (d: Date) =>
-    d.toLocaleDateString("en-US", { timeZone: "America/Chicago" });
-  const toChicagoYMDfromISO = (iso: string) =>
-    toChicagoYMD(new Date(iso));
+  // Parse to Date from ISO string
+const parseDate = (iso: string) => new Date(iso);
 
-  const nowChi = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "America/Chicago" })
-  );
-  const todayYMD = toChicagoYMD(nowChi);
-  const yesterday = new Date(nowChi);
-  yesterday.setDate(nowChi.getDate() - 1);
-  const yesterdayYMD = toChicagoYMD(yesterday);
+// Format to M/D/YYYY, h:mm AM/PM in local time
+const formatLocalDateTime = (iso: string) =>
+  new Date(iso).toLocaleString(); // shows local time
+
+// Format to YYYY-MM-DD for consistent comparison
+const toYMD = (d: Date) => d.toLocaleDateString("sv-SE");
+
+// Calculate today and yesterday in local time
+const now = new Date();
+const todayYMD = toYMD(now);
+
+const yesterday = new Date();
+yesterday.setDate(now.getDate() - 1);
+const yesterdayYMD = toYMD(yesterday);
 
   const onChangeRange =
-    (which: "start"|"end") => (_: any, picked?: Date) => {
+    (which: "start" | "end") => (_: any, picked?: Date) => {
       setShowPicker(null);
       if (picked) {
         setDateRange(r => ({ ...r, [which]: picked }));
       }
     };
 
-  // search + date filter + newest‑first sort
+  // search + date filter + newest-first sort
   const filtered = allTxs
-    .filter(tx => {
-      const q = searchText.trim().toLowerCase();
-      if (
-        q &&
-        !tx.first_name.toLowerCase().includes(q) &&
-        !tx.last_name.toLowerCase().includes(q)
-      ) return false;
+  .filter((tx) => {
+    const q = searchText.trim().toLowerCase();
+    if (
+      q &&
+      !tx.first_name.toLowerCase().includes(q) &&
+      !tx.last_name.toLowerCase().includes(q)
+    )
+      return false;
 
-      const txY = toChicagoYMDfromISO(tx.transaction_date);
-      if (dateFilter === "Today") return txY === todayYMD;
-      if (dateFilter === "Yesterday") return txY === yesterdayYMD;
-      if (dateFilter === "Range") {
-        const { start, end } = dateRange;
-        if (start && end) {
-          const s = toChicagoYMD(start);
-          const e = toChicagoYMD(end);
-          return txY >= s && txY <= e;
-        }
-        return true;
-      }
-      return true;
-    })
-    .sort((a, b) =>
+    const txDate = new Date(tx.transaction_date);
+    const txYMD = toYMD(txDate);
+
+    if (dateFilter === "Today") return txYMD === todayYMD;
+    if (dateFilter === "Yesterday") return txYMD === yesterdayYMD;
+    if (dateFilter === "Range") {
+      const { start, end } = dateRange;
+      if (start && end) return txDate >= start && txDate <= end;
+    }
+
+    return true;
+  })
+  .sort(
+    (a, b) =>
       new Date(b.transaction_date).getTime() -
       new Date(a.transaction_date).getTime()
-    );
+  );
+
 
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.cell, styles.medium]}>First Name</Text>
-
+      <Text style={[styles.cell, styles.medium]}>First Name</Text>
       <Text style={[styles.cell, styles.medium]}>Mode</Text>
       <Text style={[styles.cell, styles.small]}>Amount</Text>
       <Text style={[styles.cell, styles.medium]}>Location</Text>
-      <Text style={[styles.cell, styles.medium]}>Date</Text>
+      <Text style={[styles.cell, styles.medium]}>Date & Time</Text>
     </View>
   );
 
   const renderItem = ({ item }: { item: TransactionRow }) => (
     <View style={styles.row}>
       <Text style={[styles.cell, styles.medium]}>{item.first_name}</Text>
-
       <Text style={[styles.cell, styles.medium]}>{item.transaction_mode}</Text>
       <Text style={[styles.cell, styles.small]}>
         {item.Total_Amount.toFixed(2)}
       </Text>
       <Text style={[styles.cell, styles.medium]}>{item.Location}</Text>
       <Text style={[styles.cell, styles.medium]}>
-        {new Date(item.transaction_date).toLocaleString("en-US", {
-          timeZone: "America/Chicago",
-        })}
+        {formatLocalDateTime(item.transaction_date)}
       </Text>
     </View>
   );
@@ -168,7 +169,7 @@ export default function Transactions() {
         />
 
         <View style={styles.filterRow}>
-          {(["All","Today","Yesterday","Range"] as const).map(f => (
+          {(["All", "Today", "Yesterday", "Range"] as const).map(f => (
             <TouchableOpacity
               key={f}
               style={[
@@ -196,7 +197,8 @@ export default function Transactions() {
             >
               <Ionicons name="calendar-outline" size={18} />
               <Text style={styles.smallDateText}>
-                {dateRange.start ? toChicagoYMD(dateRange.start) : "Start"}
+              {dateRange.start ? toYMD(dateRange.start) : "Start"}
+
               </Text>
             </TouchableOpacity>
 
@@ -206,18 +208,19 @@ export default function Transactions() {
             >
               <Ionicons name="calendar-outline" size={18} />
               <Text style={styles.smallDateText}>
-                {dateRange.end ? toChicagoYMD(dateRange.end) : "End"}
+              {dateRange.end ? toYMD(dateRange.end) : "Start"}
+
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {showPicker && (
-          Platform.OS === "web" ? (
+        {showPicker &&
+          (Platform.OS === "web" ? (
             <input
               type="date"
               style={styles.webDateInput}
-              onChange={(e) => {
+              onChange={e => {
                 const d = new Date(e.target.value);
                 if (!isNaN(d.getTime())) {
                   setDateRange(r => ({ ...r, [showPicker]: d }));
@@ -236,8 +239,7 @@ export default function Transactions() {
               display="calendar"
               onChange={onChangeRange(showPicker)}
             />
-          )
-        )}
+          ))}
       </View>
 
       <FlatList
@@ -282,7 +284,10 @@ const styles = StyleSheet.create({
   filterText: { color: "#444" },
   filterTextActive: { color: "#fff" },
 
-  rangeRow: { flexDirection: "row", alignItems: "center" },
+  rangeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   smallDateBtn: {
     flexDirection: "row",
     alignItems: "center",

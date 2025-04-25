@@ -165,7 +165,6 @@ export default function TransactionCharts() {
                 title: {
                   display: true,
                   text: "Daily Swipes (Bar) vs Flex Dollars (Line) - Chicago Time",
-                  
                 },
               },
             }}
@@ -257,7 +256,7 @@ const styles = StyleSheet.create({
 
   card3:
     {
-        backgroundColor: "rgba(0, 157, 255, 0.19)",
+        backgroundColor: "rgba(0, 94, 255, 0.2)",
         borderRadius: 12,
         padding: 20,
         marginBottom: 16,

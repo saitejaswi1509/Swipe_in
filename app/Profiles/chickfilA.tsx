@@ -1036,7 +1036,9 @@ const handleConfirmPayment = async () => {
 
   const transactionData = {
     username: username,
-    transaction_date: new Date().toISOString(),
+    transaction_date: new Date()
+    .toLocaleString("sv-SE", { timeZone: "America/Chicago" }) 
+    .replace(" ", "T"),
     transaction_mode: selectedMethod,
     transaction_id: uuid.v4(),
     is_successful: true,

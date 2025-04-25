@@ -21,6 +21,48 @@ import { router } from "expo-router";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
+function getDallasDateObject(dateStr: string): Date {
+  const utcDate = new Date(dateStr);
+
+  // Get timezone offset for America/Chicago at that date
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const parts = formatter.formatToParts(utcDate).reduce((acc, part) => {
+    if (part.type !== "literal") {
+      acc[part.type] = parseInt(part.value, 10);
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  return new Date(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+}
+
+
+function formatDallasDateTime(dateStr: string): string {
+  return getDallasDateObject(dateStr).toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    dateStyle: "short",
+    timeStyle: "short",
+    hour12: true,
+  });
+}
+
 // Chicago–time formatting helpers
 function toChicagoYMD(d: Date) {
   return d.toLocaleDateString("en-US", { timeZone: "America/Chicago" });
@@ -44,7 +86,6 @@ type Transaction = {
   Location: string;
 };
 
-
 // Helpers for web date‐input to avoid UTC offset
 function formatChicagoDateForInput(d: Date): string {
   // "en-CA" gives "YYYY-MM-DD", rendered in America/Chicago zone
@@ -57,7 +98,6 @@ function parseChicagoInput(val: string): Date {
   // creates a Date at local midnight of that day
   return new Date(y, m - 1, day);
 }
-
 
 export default function HomePage() {
   const navigation = useNavigation();
@@ -116,7 +156,7 @@ export default function HomePage() {
   }, [username]);
 
   // ─── Filter & sort ─────────────────────────────────────────────
-  
+
   // Helpers to format/parse dates in America/Chicago
   const formatChicagoDateForInput = (d: Date) =>
     d.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
@@ -129,17 +169,17 @@ export default function HomePage() {
     const c = new Date(d);
     c.setHours(0, 0, 0, 0);
     return c;
-  }
+  };
 
   const filtered = transactions
     .slice()
     .sort(
       (a, b) =>
-        new Date(b.transaction_date).getTime() -
-        new Date(a.transaction_date).getTime()
+        getDallasDateObject(b.transaction_date).getTime() -
+        getDallasDateObject(a.transaction_date).getTime()
     )
     .filter((tx) => {
-      const txDay = zeroTime(new Date(tx.transaction_date));
+      const txDay = zeroTime(getDallasDateObject(tx.transaction_date));
 
       if (dateFilter === "Today") {
         if (txDay.getTime() !== zeroTime(new Date()).getTime()) return false;
@@ -150,8 +190,8 @@ export default function HomePage() {
         if (txDay.getTime() !== y.getTime()) return false;
       }
       if (dateFilter === "Range" && dateRange.start && dateRange.end) {
-        const s = zeroTime(dateRange.start),
-          e = zeroTime(dateRange.end);
+        const s = zeroTime(dateRange.start);
+        const e = zeroTime(dateRange.end);
         if (txDay < s || txDay > e) return false;
       }
       return true;
@@ -166,36 +206,33 @@ export default function HomePage() {
   const displayed = showAll ? filtered : firstFive;
 
   // Native DateTimePicker handler
-  const onChangeRange =
-    (which: "start" | "end") =>
-    (_: any, picked?: Date) => {
-      setShowPicker(null);
-      if (picked) setDateRange((r) => ({ ...r, [which]: picked }));
-    };
+  const onChangeRange = (which: "start" | "end") => (_: any, picked?: Date) => {
+    setShowPicker(null);
+    if (picked) setDateRange((r) => ({ ...r, [which]: picked }));
+  };
   return (
     <ScrollView ref={scrollRef} showsHorizontalScrollIndicator={false}>
-    <View style={localStyles.balanceContainer}>
-  <Text style={localStyles.planText}>
-    Your Meal Plan: {plan || "Loading..."}
-  </Text>
-  
+      <View style={localStyles.balanceContainer}>
+        <Text style={localStyles.planText}>
+          Your Meal Plan: {plan || "Not Available"}
+        </Text>
 
-  <View style={localStyles.balanceRow}>
-    <Icon name="cutlery" size={20} style={localStyles.balanceIcon} />
-    <Text style={localStyles.balanceText}>
-      Meal Swipes Left: {balances.meal_swipes_left}
-    </Text>
-  </View>
+        <View style={localStyles.balanceRow}>
+          <Icon name="cutlery" size={20} style={localStyles.balanceIcon} />
+          <Text style={localStyles.balanceText}>
+            Meal Swipes Left: {balances.meal_swipes_left}
+          </Text>
+        </View>
 
-  <View style={localStyles.balanceRow}>
-    <Icon name="dollar" size={20} style={localStyles.balanceIcon} />
-    <Text style={localStyles.balanceText}>
-      Flex Dollars Left: ${balances.flex_dollars_left.toFixed(2)}
-    </Text>
-  </View>
+        <View style={localStyles.balanceRow}>
+          <Icon name="dollar" size={20} style={localStyles.balanceIcon} />
+          <Text style={localStyles.balanceText}>
+            Flex Dollars Left: ${balances.flex_dollars_left.toFixed(2)}
+          </Text>
+        </View>
 
-  <Pressable
-          onPress={() => router.push('/Student/meal_upgrade')}
+        <Pressable
+          onPress={() => router.push("/Student/meal_upgrade")}
           style={({ hovered, pressed }) => [
             localStyles.upgradeBtn,
             hovered && localStyles.upgradeHover,
@@ -204,9 +241,7 @@ export default function HomePage() {
         >
           <Text style={localStyles.upgradeText}>Upgrade</Text>
         </Pressable>
-  
-
-</View>
+      </View>
 
       {/* ─── FILTER ROW ──────────────────────────────────────────── */}
       <View style={localStyles.filterRow}>
@@ -237,7 +272,7 @@ export default function HomePage() {
         </View>
       </View>
 
-        {/* Range Pickers */}
+      {/* Range Pickers */}
       {dateFilter === "Range" && (
         <View style={localStyles.rangePickers}>
           {Platform.OS === "web" ? (
@@ -261,9 +296,7 @@ export default function HomePage() {
                 type="date"
                 style={localStyles.webDateInput}
                 value={
-                  dateRange.end
-                    ? formatChicagoDateForInput(dateRange.end)
-                    : ""
+                  dateRange.end ? formatChicagoDateForInput(dateRange.end) : ""
                 }
                 onChange={(e) => {
                   const d = parseChicagoInput(e.target.value);
@@ -358,7 +391,12 @@ export default function HomePage() {
         <ActivityIndicator style={{ marginVertical: 20 }} />
       ) : (
         <ScrollView horizontal contentContainerStyle={localStyles.tableWrapper}>
-          <View style={[localStyles.tableContainer, { minWidth: SCREEN_WIDTH - 40 }]}>
+          <View
+            style={[
+              localStyles.tableContainer,
+              { minWidth: SCREEN_WIDTH - 40 },
+            ]}
+          >
             <View style={localStyles.tableRowHeader}>
               <Text style={localStyles.tableCellHeader}>Date</Text>
               <Text style={localStyles.tableCellHeader}>Mode</Text>
@@ -372,9 +410,7 @@ export default function HomePage() {
             {displayed.map((t, i) => (
               <View key={i} style={localStyles.tableRow}>
                 <Text style={localStyles.tableCell}>
-                  {new Date(t.transaction_date).toLocaleString("en-US", {
-                    timeZone: "America/Chicago",
-                  })}
+                {formatDallasDateTime(t.transaction_date)}
                 </Text>
                 <Text style={localStyles.tableCell}>{t.transaction_mode}</Text>
                 <Text
@@ -384,7 +420,7 @@ export default function HomePage() {
                       color: t.Location === "Chick-fil-A" ? "red" : "brown",
                       fontWeight: "bold",
                     },
-                  ]}              
+                  ]}
                 >
                   {t.Location}
                 </Text>
@@ -414,96 +450,95 @@ export default function HomePage() {
 }
 
 const localStyles = StyleSheet.create({
-    balanceContainer: {
-        position: "absolute" as const,
-        top: 16,
-        left: 600,
-        right: 600,
-        backgroundColor: "#FFF",
-        paddingVertical: 20,
-        paddingHorizontal: 24,
-        borderRadius: 42,
-        elevation: 6,
-        marginTop: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        alignItems: "center",
-        zIndex: 10,
-        borderColor: "brown",
-      },
-      planText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 12,
-        textAlign: "center",
-      },
-      balanceRow: {
-        flexDirection: "row",
-        alignItems: "center" ,
-        justifyContent: "center",
-        marginVertical: 4,
-      },
-      balanceIcon: {
-        marginRight: 6,
-      },
-      balanceText: {
-        fontSize: 16,
-        fontWeight: "500",
-        color: "#333",
-      },
-      rangePickers: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 1300,
-        marginTop: 30,
-      },
-      rangeLabel: {
-        fontSize: 14,
-        marginRight: 4,
-        color: "#333",
-        
-      },
-      datePickerButton: {
-        marginLeft: 12,
-        padding: 8,
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 4,
-      },
-      datePickerText: {
-        fontSize: 14,
-      },
-      webDateInput: {
-        width: 140,
-        height: 32,
-        marginRight: 12,
-      },
+  balanceContainer: {
+    position: "absolute" as const,
+    top: 16,
+    left: 600,
+    right: 600,
+    backgroundColor: "#FFF",
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 42,
+    elevation: 6,
+    marginTop: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    alignItems: "center",
+    zIndex: 10,
+    borderColor: "brown",
+  },
+  planText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  balanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 4,
+  },
+  balanceIcon: {
+    marginRight: 6,
+  },
+  balanceText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+  },
+  rangePickers: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 1300,
+    marginTop: 30,
+  },
+  rangeLabel: {
+    fontSize: 14,
+    marginRight: 4,
+    color: "#333",
+  },
+  datePickerButton: {
+    marginLeft: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+  },
+  datePickerText: {
+    fontSize: 14,
+  },
+  webDateInput: {
+    width: 140,
+    height: 32,
+    marginRight: 12,
+  },
 
-      upgradeBtn: {
-        paddingVertical: 4,
-        paddingHorizontal: 12,
-        borderRadius: 12,
-        borderWidth: 1,
-marginTop: 15,
-        borderColor: 'brown',
-      },
-      upgradeText: {
-        color: '#005fa8',
-        fontWeight: '600',
-      },
-      upgradeHover: {
-        backgroundColor: '#E6F7FF',
-      },
-      upgradePressed: {
-        opacity: 0.8,
-      },
-    
+  upgradeBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 15,
+    borderColor: "brown",
+  },
+  upgradeText: {
+    color: "#005fa8",
+    fontWeight: "600",
+  },
+  upgradeHover: {
+    backgroundColor: "#E6F7FF",
+  },
+  upgradePressed: {
+    opacity: 0.8,
+  },
+
   filterRow: {
     flexDirection: "row",
-    justifyContent: "flex-end" ,
-    alignItems: "center" ,
+    justifyContent: "flex-end",
+    alignItems: "center",
     paddingHorizontal: 16,
     marginTop: 200, // extra space under balance card
     marginBottom: 8,
@@ -537,59 +572,56 @@ marginTop: 15,
     color: "#fff",
   },
 
-  
   tableContainer: {
-        
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
 
-   padding: 56,
+    padding: 56,
     borderRadius: 32,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
+    overflow: "hidden",
+    backgroundColor: "#fff",
   },
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: 600,
     marginTop: 24,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    overflow: 'hidden',
+    backgroundColor: "#f0f0f0",
+    overflow: "hidden",
   },
-  
-tabButton: {
-  flex: 1,
-  paddingVertical: 10,
-  alignItems: 'center',
-  borderRadius: 22,
-  backgroundColor: '#f0f0f0',
-  borderColor: '#ddd',
-  borderWidth: 1,
-},
-activeTab: {
-  backgroundColor: 'brown',
-  elevation: 2,
-},
-tabText: {
-  fontSize: 16,
-  color: '#555',
-},
-activeTabText: {
-  color: 'white',
-  fontWeight: 'bold'
-},
 
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderRadius: 22,
+    backgroundColor: "#f0f0f0",
+    borderColor: "#ddd",
+    borderWidth: 1,
+  },
+  activeTab: {
+    backgroundColor: "brown",
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 16,
+    color: "#555",
+  },
+  activeTabText: {
+    color: "white",
+    fontWeight: "bold",
+  },
 
   tableWrapper: {
     paddingHorizontal: 16,
     marginVertical: 24,
   },
-  
+
   tableRowHeader: {
     flexDirection: "row",
     backgroundColor: "brown",
     paddingVertical: 10,
-    borderRadius: 12
+    borderRadius: 12,
   },
   tableRow: {
     flexDirection: "row",

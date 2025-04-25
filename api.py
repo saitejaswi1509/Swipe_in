@@ -190,7 +190,9 @@ class SubCategoryIn(BaseModel):
 
 class Config:
     orm_mode = True
-    json_encoders = {datetime: lambda dt: dt.isoformat()}
+    json_encoders = {
+        datetime: lambda dt: dt.astimezone(ZoneInfo("America/Chicago")).isoformat()
+    }
 
 
 def get_db():
